@@ -1,0 +1,51 @@
+@banana_reservas_api_host = http://localhost:8000
+@jwt_token = cole_aqui_um_jwt_valido
+
+GET {{banana_reservas_api_host}}/api/health
+Accept: application/json
+
+###
+
+GET {{banana_reservas_api_host}}/api/locais
+Accept: application/json
+Authorization: Bearer {{jwt_token}}
+
+###
+
+POST {{banana_reservas_api_host}}/api/locais
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "nome": "Matriz",
+  "descricao": "Unidade principal"
+}
+
+###
+
+POST {{banana_reservas_api_host}}/api/salas
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "local_id": 1,
+  "nome": "Sala Oceano",
+  "capacidade": 12
+}
+
+###
+
+POST {{banana_reservas_api_host}}/api/reservas
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "local_id": 1,
+  "sala_id": 1,
+  "inicio": "2026-05-12T14:00:00",
+  "fim": "2026-05-12T15:00:00",
+  "responsavel": "Marcos Silva",
+  "cafe": true,
+  "quantidade_pessoas": 8,
+  "descricao": "Reunião semanal"
+}

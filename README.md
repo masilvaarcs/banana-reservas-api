@@ -1,41 +1,46 @@
 # 🐍 banana-reservas-api
 
-Serviço de gerenciamento de reservas de salas da **Banana Ltda.**
+Serviço de gerenciamento de reservas de salas da Banana Ltda.
 
 ## 📋 Responsabilidade na Arquitetura
 
-Este serviço é responsável pelo **CRUD de reservas, salas e locais**, além da **validação de conflitos de horário**. Todas as rotas são protegidas por JWT, que é emitido pelo `banana-auth-api` (C#) e validado localmente neste serviço usando o secret compartilhado.
+Este serviço é responsável pelo CRUD de reservas, salas e locais, além da validação de conflitos de horário. Todas as rotas de negócio são protegidas por JWT emitido no banana-auth-api.
 
+```text
+[Frontend] -> requisições de reserva + JWT -> [banana-reservas-api]
+                                               -> valida JWT localmente
+                                               -> processa requisição
 ```
-[Frontend] → requisições de reserva + JWT → [banana-reservas-api]
-                                                  ↓
-                                    valida JWT com secret compartilhado
-                                                  ↓
-                                    processa a requisição
-```
+
+## 📦 Estrutura de Repositórios
+
+Este repositório é independente e representa apenas o Projeto 2 (banana-reservas-api).
+
+- Não existe solução única carregando os 3 projetos.
+- A execução é isolada por ambiente Python local.
+- A integração com o Projeto 1 acontece por JWT compartilhado via variável de ambiente.
 
 ## 🛠️ Stack Tecnológica
 
 | Tecnologia | Versão | Justificativa |
-|---|---|---|
-| Python | 3.11+ | Versão estável com melhorias de performance e tipagem |
-| FastAPI | 0.111+ | Framework moderno, async-first, com Swagger automático e validação via Pydantic |
-| SQLAlchemy | 2.x | ORM maduro e flexível, obrigatório conforme especificação |
-| Alembic | 1.13+ | Gerenciamento de migrations para SQLAlchemy |
-| PostgreSQL | Local | Banco relacional já disponível no ambiente de desenvolvimento |
-| python-jose | 3.3+ | Biblioteca robusta para decodificação e validação de JWT |
-| Pydantic v2 | incluso | Validação de dados e schemas tipados (incluso no FastAPI) |
-| Uvicorn | 0.29+ | Servidor ASGI de alta performance para rodar o FastAPI |
+| --- | --- | --- |
+| Python | 3.11+ | Versão estável e aderente ao desafio |
+| FastAPI | 0.111.0 | API REST com validação automática e Swagger nativo |
+| SQLAlchemy | 2.0.44 | ORM obrigatório no desafio |
+| Alembic | 1.16.5 | Versionamento de schema relacional |
+| PostgreSQL | Local | Banco relacional obrigatório |
+| python-jose | 3.3.0 | Validação local de JWT |
+| Uvicorn | 0.30.1 | Servidor ASGI para execução da API |
 
 ## ✅ Pré-requisitos
 
 - Python 3.11+
-- PostgreSQL (local)
-- VS Code + extensão Python (Pylance)
+- PostgreSQL local
+- VS Code com extensão Python
 
 ## ⚙️ Variáveis de Ambiente
 
-Crie o arquivo `.env` na raiz do projeto (não commitado). Use `.env.example` como base:
+Crie o arquivo .env na raiz do projeto (não commitar), usando .env.example:
 
 ```env
 DATABASE_URL=postgresql://postgres:suasenha@localhost:5432/banana_reservas
@@ -46,83 +51,105 @@ JWT_AUDIENCE=banana-app
 CORS_ORIGINS=http://localhost:3000,http://localhost:5173
 ```
 
-> ⚠️ **Importante:** O valor de `JWT_SECRET` deve ser **idêntico** ao `Jwt:Secret` configurado no `banana-auth-api`.
+Importante: JWT_SECRET deve ser exatamente o mesmo valor configurado em Jwt:Secret do Projeto 1.
 
 ## 🚀 Como Rodar Localmente
 
 ```bash
-# 1. Clonar o repositório
-git clone https://github.com/seu-usuario/banana-reservas-api.git
+# 1) entrar na pasta do projeto
 cd banana-reservas-api
 
-# 2. Criar e ativar o ambiente virtual
-python -m venv venv
-# Windows:
-venv\Scripts\activate
-# Linux/Mac:
-source venv/bin/activate
+# 2) criar e ativar ambiente virtual
+python -m venv .venv
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
 
-# 3. Instalar dependências
+# 3) instalar dependências
 pip install -r requirements.txt
 
-# 4. Criar o banco de dados no PostgreSQL
-# (criar manualmente o banco 'banana_reservas' antes)
-
-# 5. Aplicar migrations
+# 4) aplicar migrations
 alembic upgrade head
 
-# 6. Rodar o servidor
+# 5) subir API
 uvicorn app.main:app --reload --port 8000
-
-# A API estará disponível em:
-# http://localhost:8000
-# Swagger: http://localhost:8000/docs
 ```
+
+Endpoints locais:
+
+- API: <http://localhost:8000>
+- Swagger: <http://localhost:8000/docs>
+- Health: <http://localhost:8000/api/health>
+
+## 🔐 JWT e Integração com Projeto 1
+
+O fluxo de autenticação é:
+
+1. Frontend autentica no banana-auth-api.
+2. Recebe JWT no login.
+3. Envia `Authorization: Bearer TOKEN_JWT` nas rotas deste serviço.
+4. Este serviço valida token localmente com JWT_SECRET, JWT_ISSUER e JWT_AUDIENCE.
+
+Não há chamada HTTP do serviço Python para o serviço C# durante a validação.
 
 ## 📡 Endpoints
 
-Todos os endpoints exigem header: `Authorization: Bearer <JWT>`
+Todos os endpoints abaixo exigem `Authorization: Bearer TOKEN_JWT`, exceto /api/health.
 
 ### Locais
+
 | Método | Rota | Descrição |
-|---|---|---|
-| GET | `/api/locais` | Lista todos os locais |
-| POST | `/api/locais` | Cria um local |
-| PUT | `/api/locais/{id}` | Edita um local |
-| DELETE | `/api/locais/{id}` | Remove um local |
+| --- | --- | --- |
+| GET | /api/locais | Lista locais |
+| POST | /api/locais | Cria local |
+| PUT | /api/locais/{id} | Atualiza local |
+| DELETE | /api/locais/{id} | Remove local |
 
 ### Salas
+
 | Método | Rota | Descrição |
-|---|---|---|
-| GET | `/api/salas` | Lista todas as salas |
-| GET | `/api/salas?local_id=xxx` | Filtra salas por local |
-| POST | `/api/salas` | Cria uma sala |
-| PUT | `/api/salas/{id}` | Edita uma sala |
-| DELETE | `/api/salas/{id}` | Remove uma sala |
+| --- | --- | --- |
+| GET | /api/salas | Lista salas |
+| GET | /api/salas?local_id={id} | Filtra salas por local |
+| POST | /api/salas | Cria sala |
+| PUT | /api/salas/{id} | Atualiza sala |
+| DELETE | /api/salas/{id} | Remove sala |
 
 ### Reservas
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | `/api/reservas` | Lista todas as reservas |
-| POST | `/api/reservas` | Cria uma reserva (valida conflito) |
-| PUT | `/api/reservas/{id}` | Edita uma reserva (valida conflito) |
-| DELETE | `/api/reservas/{id}` | Remove uma reserva |
-| DELETE | `/api/reservas/batch` | *(bônus)* Remove múltiplas reservas |
 
-### Health
 | Método | Rota | Descrição |
-|---|---|---|
-| GET | `/api/health` | Health check do serviço |
+| --- | --- | --- |
+| GET | /api/reservas | Lista reservas |
+| POST | /api/reservas | Cria reserva com validação de conflito |
+| PUT | /api/reservas/{id} | Atualiza reserva com validação de conflito |
+| DELETE | /api/reservas/{id} | Remove reserva |
+| DELETE | /api/reservas/batch | Remove reservas em lote (bônus) |
+
+#### DELETE /api/reservas/batch
+
+Requisição:
+```json
+{
+  "reserva_ids": [1, 2, 3]
+}
+```
+
+Resposta (200 OK):
+```json
+{
+  "deleted_count": 3
+}
+```
 
 ## ⚠️ Regra de Conflito de Horário
 
-Uma reserva é bloqueada se, para a **mesma sala e local**, já existir outra reserva onde:
+A reserva é bloqueada quando já existe, para a mesma sala e local, um intervalo que se sobrepõe:
 
-```
-nova.inicio < existente.fim  AND  nova.fim > existente.inicio
+```text
+novo.inicio < existente.fim AND novo.fim > existente.inicio
 ```
 
-Retorno em caso de conflito: **HTTP 409**
+Em caso de conflito, retorno HTTP 409:
+
 ```json
 {
   "error": "Conflito de horário",
@@ -130,16 +157,13 @@ Retorno em caso de conflito: **HTTP 409**
 }
 ```
 
-## 🔑 Validação do JWT
-
-O token emitido pelo `banana-auth-api` é validado localmente usando o `JWT_SECRET` compartilhado. Nenhuma chamada HTTP ao serviço C# é necessária durante a validação.
-
 ## 📁 Estrutura do Projeto
 
-```
+```text
 banana-reservas-api/
 ├── app/
 │   ├── main.py
+│   ├── config.py
 │   ├── database.py
 │   ├── dependencies.py
 │   ├── models/
@@ -158,9 +182,10 @@ banana-reservas-api/
 │       ├── auth.py
 │       └── reserva_service.py
 ├── alembic/
+│   ├── env.py
+│   └── versions/
 ├── alembic.ini
-├── .env               ← não commitado
-├── .env.example
 ├── requirements.txt
+├── .env.example
 └── README.md
 ```

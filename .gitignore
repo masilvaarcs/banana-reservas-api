@@ -46,6 +46,9 @@ coverage.xml
 Thumbs.db
 desktop.ini
 
+# GitHub Copilot / AI agent artifacts
+AGENTS.md
+
 # Logs
 *.log
 logs/
