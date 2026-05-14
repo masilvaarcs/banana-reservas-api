@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_redoc_html
@@ -5,12 +7,26 @@ from fastapi.responses import HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
+from app.database import ensure_database_exists, run_alembic_migrations
 from app.routers import locais, reservas, salas
 
 settings = get_settings()
 CHROME_DEVTOOLS_PROBE_PATH = (
     "/.well-known/appspecific/com.chrome.devtools.json"
 )
+
+
+@asynccontextmanager
+async def lifespan(_: "FastAPI"):
+    """
+    Executado uma vez na inicialização do servidor.
+    Garante que o banco PostgreSQL e todas as tabelas existam antes de
+    aceitar requisições — elimina a necessidade de setup manual após clone.
+    """
+    ensure_database_exists()
+    run_alembic_migrations()
+    yield
+
 
 app = FastAPI(
     title="Banana Reservas API",
@@ -20,6 +36,7 @@ app = FastAPI(
         "serviço de autenticação."
     ),
     redoc_url=None,
+    lifespan=lifespan,
 )
 
 app.add_middleware(
